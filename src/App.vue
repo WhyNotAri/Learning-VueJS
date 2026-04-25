@@ -22,18 +22,22 @@ const createUrl = (phone, message) => {
 const pokemon = ref(null);
 const pokemonName = ref('');
 const cry = ref(null);
+const searching = ref(false);
+const found = ref('');
 const getPokemon = async (pokemonName) => {
+  searching.value = true;
 
   try {
-    const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName.toLowerCase()}`);
+    const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokemonName.trim().toLowerCase()}`);
     pokemon.value = response.data;
     cry.value = response.data.cries.latest;
-
   }catch(error) {
-    console.log(error);
+    pokemon.value = null;
+    cry.value = null;
+    found.value = axios.isAxiosError(error) && error.response?.status === 404 ? 'Pokemon not found' : 'Error';
+  }finally {
+    searching.value = false;
   }
-
-  return pokemon;
 }
 
 const playCry = () => {
@@ -46,12 +50,12 @@ const playCry = () => {
 </script>
 
 <template>
-  <header>
-    <h1>{{ title }}</h1>
-    <button @click="changeTitle()">Change</button>
-  </header>
+  <h1>{{ title }}</h1>
+  <button @click="changeTitle()">Change</button>
 
-  <body>
+  <br><br>
+
+  <!--- Whatsapp --->
   <div>
     <div>
       <label for="name">Name:</label>
@@ -71,26 +75,33 @@ const playCry = () => {
     </div>
   </div>
 
+  <!--- Pokemon --->
   <div>
     <search>
       <input v-model="pokemonName" type="text" placeholder="Enter pokemon name...">
       <button @click="getPokemon(pokemonName)">Search Pokemon</button>
     </search>
 
-    <div v-if="pokemon">
+    <div v-if="searching">
+      <p>Searching your pokemon...</p>
+    </div>
+
+    <div v-else-if="pokemon">
       <h2>{{ pokemon.name }}</h2>
 
       <button @click="playCry">Listen</button>
 
-      <img :src="pokemon.sprites.other['official-artwork'].front_default" alt="pokemon.name">
+      <img :src="pokemon.sprites.other['official-artwork'].front_default" :alt="pokemon.name">
     </div>
+
+    <div v-else-if="found">
+      <p>{{ found }}</p>
+    </div>
+
     <div v-else>
-      <p>Loading...</p>
+      <p>Search your pokemon</p>
     </div>
   </div>
-
-  </body>
-
 </template>
 
 <style scoped>
